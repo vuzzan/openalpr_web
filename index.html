@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <!-- Meta, title, CSS, favicons, etc. -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>openalpr on Raspberry B</title>
+  </head>
+
+  <body class="nav-sm">
+		<a href="img/" target="_blank">Example Images</a></br>
+					<form action="/alpr" method="post" enctype="multipart/form-data">
+						Select image to Recognizer:
+						<input type="file" name="image" id="image">
+						<input type="submit" value="Recognizer" name="submit">
+					</form>
+					</br>
+					<input type="text" name="plate" id="plate">
+					</br>
+                    <canvas id="canvas"></canvas>
+					
+
+
+
+    <!-- jQuery -->
+    <script
+  src="https://code.jquery.com/jquery-3.4.1.js"
+  integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU="
+  crossorigin="anonymous"></script>
+
+	<script>
+document.getElementById('image').onchange = function(e) {
+	var img = new Image();
+	img.onload = draw;
+	img.onerror = failed;
+	img.src = URL.createObjectURL(this.files[0]);
+	$("#plate").val("");
+};
+function draw() {
+	var canvas = document.getElementById('canvas');
+	canvas.width = this.width;
+	canvas.height = this.height;
+	var ctx = canvas.getContext('2d');
+	ctx.drawImage(this, 0,0);
+}
+function failed() {
+	console.error("The provided file couldn't be loaded as an Image media");
+}
+   //form Submit
+   $("form").submit(function(evt){
+		evt.preventDefault();
+		var formData = new FormData($(this)[0]);
+		console.log("SEND POST");
+		$.ajax({
+		url: '/alpr',
+		type: 'POST',
+		data: formData,
+		async: false,
+		cache: false,
+		contentType: false,
+		enctype: 'multipart/form-data',
+		processData: false,
+		success: function (responseString) {
+		//console.log(responseString);
+		var response = JSON.parse(responseString);
+		//console.log(response);
+			if( response.results.length> 0 ){
+				$("#plate").val(""+response.results[0].plate);
+				//alert(response.results[0].plate );
+				var canvas = document.getElementById('canvas');
+				context = canvas.getContext('2d');
+				context.strokeStyle = "blue";
+				context.lineWidth = 3;
+
+				for (var i = 0; i < response.results[0].coordinates.length-1; i++) {
+					console.log(response.results[0].coordinates[i]);
+					//Do something
+					var x1 = response.results[0].coordinates[i].x;
+					var y1 = response.results[0].coordinates[i].y;
+					var x2 = response.results[0].coordinates[i+1].x;
+					var y2 = response.results[0].coordinates[i+1].y;
+					context.beginPath();
+					context.moveTo(x1, y1);
+					context.lineTo(x2, y2);
+					context.stroke();
+				}
+			}
+			else{
+				$("#plate").val("No thing");
+			}
+		}
+		});
+   return false;
+ });
+</script>
+  </body>
+</html>
